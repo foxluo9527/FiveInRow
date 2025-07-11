@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">FiveInRow</string>
+    <string name="game_name">五子棋</string>
+    <string name="about">about us:FoxLuo\nemail:1061297065@qq.com</string>
+    <string name="save">存档</string>
+    <string name="setting">设置</string>
+    <string name="save_list">存档列表</string>
+    <string name="new_game">新游戏</string>
+</resources>
