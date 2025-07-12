@@ -19,4 +19,12 @@
     <string name="board_padding">棋盘边距</string>
     <string name="border_color">线框颜色</string>
     <string name="border_width">线框粗细</string>
+    <string name="pvp">玩家对弈</string>
+    <string name="pve">AI电脑</string>
+    <string name="easy_mode">AI难度</string>
+    <string name="choose_easy_mode">选择AI难度</string>
+    <string name="easy_0">弱智</string>
+    <string name="easy_1">有点傻</string>
+    <string name="easy_2">正常</string>
+    <string name="easy_3">会玩</string>
 </resources>

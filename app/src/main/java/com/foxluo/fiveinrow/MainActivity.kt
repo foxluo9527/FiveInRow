@@ -7,15 +7,19 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.blankj.utilcode.util.SPUtils
 import com.blankj.utilcode.util.ToastUtils
-import com.foxluo.fiveinrow.ConfirmAnim.getConfirmAnim
+import com.foxluo.fiveinrow.AnimCenter.getConfirmAnim
+import com.foxluo.fiveinrow.AnimCenter.getRepeatWaitAnim
 import com.foxluo.fiveinrow.DialogCenter.cacheListDialog
 import com.foxluo.fiveinrow.DialogCenter.gameOverDialog
 import com.foxluo.fiveinrow.DialogCenter.inputTitleDialog
+import com.foxluo.fiveinrow.DialogCenter.newGameDialog
 import com.foxluo.fiveinrow.DialogCenter.settingDialog
 import com.foxluo.fiveinrow.DialogCenter.showConfirmDialog
 import com.foxluo.fiveinrow.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
 
 @SuppressLint("SetTextI18n")
 class MainActivity : AppCompatActivity(), GameCallback {
@@ -28,6 +32,8 @@ class MainActivity : AppCompatActivity(), GameCallback {
     private var inputDialog: AlertDialog? = null
 
     private var cacheListDialog: AlertDialog? = null
+
+    private var newGameDialog: AlertDialog? = null
 
     private val cacheAdapter by lazy {
         BoardCacheAdapter().apply {
@@ -59,6 +65,16 @@ class MainActivity : AppCompatActivity(), GameCallback {
         })
     }
 
+    private val waitAIAnim by lazy {
+        getRepeatWaitAnim(updateAnim = { value ->
+            var waitStr = "AI推算中"
+            for (i in 0 until value) {
+                waitStr += "."
+            }
+            binding.title.text = waitStr
+        })
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -69,7 +85,10 @@ class MainActivity : AppCompatActivity(), GameCallback {
             insets
         }
         binding.reset.setOnClickListener {
-            binding.gameView.resetGame()
+            newGameDialog = newGameDialog {
+                binding.gameView.resetGame(!it)
+                newGameDialog?.dismiss()
+            }.show()
         }
         binding.cancel.setOnClickListener {
             binding.gameView.cancelMove()
@@ -92,11 +111,13 @@ class MainActivity : AppCompatActivity(), GameCallback {
                 inputDialog?.dismiss()
             }, positive = { title ->
                 inputDialog?.dismiss()
-                BoardCacheManager.saveGame(
+                val saveResult = BoardCacheManager.saveGame(
                     binding.gameView.gameStartTime,
                     title,
-                    binding.gameView.getGameData()
+                    binding.gameView.getGameDataCache(),
+                    binding.gameView.playWithComputer
                 )
+                ToastUtils.showShort(if (saveResult) "存档成功" else "存档失败")
             }).show()
         }
         binding.cache.setOnClickListener {
@@ -130,17 +151,53 @@ class MainActivity : AppCompatActivity(), GameCallback {
         confirmAnim.start()
     }
 
+    override fun onComputerConfirm() {
+        lifecycleScope.launch {
+            binding.title.text = "AI推算中"
+            waitAIAnim.start()
+            val originalGameData = binding.gameView.getGameData()
+            // 创建棋盘深拷贝用于AI计算，避免修改原始数据导致UI闪烁
+            val gameData = originalGameData.map { it.clone() }.toTypedArray()
+            val (bestRow, bestCol) = AiPlayer.calculateNextMove(gameData)
+            waitAIAnim.cancel()
+            binding.title.text = "请您出棋"
+            binding.gameView.computerConfirm(bestRow, bestCol)
+        }
+    }
+
+    override fun onStep(player: Int) {
+        if (!(binding.gameView.playWithComputer)) {
+            binding.title.text = "请${if (player == 1) "黑" else "白"}方出棋"
+        } else {
+            if (player == 1) {
+                binding.title.text = "请您出棋"
+            } else {
+                onComputerConfirm()
+            }
+        }
+    }
+
     override fun gameOver(blackWin: Boolean) {
         binding.save.isEnabled = false
-        gameOverDialog = gameOverDialog("${if (blackWin) "黑" else "白"}方胜", negative = {
+        val win = if (blackWin) "黑" else "白"
+        gameOverDialog = gameOverDialog("${win}方胜", negative = {
             gameOverDialog?.dismiss()
         }, positive = {
             gameOverDialog?.dismiss()
             binding.gameView.resetGame()
         }).show()
+        binding.title.text = "${win}方获胜"
     }
 
     override fun gameStart() {
         binding.save.isEnabled = true
+    }
+
+    override fun gameReady() {
+        if (!(binding.gameView.playWithComputer)) {
+            binding.title.text = "请黑方出棋"
+        } else {
+            binding.title.text = "请您出棋"
+        }
     }
 }

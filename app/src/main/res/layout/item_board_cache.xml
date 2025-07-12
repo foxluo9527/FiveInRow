@@ -24,6 +24,20 @@
         tools:text="标题" />
 
     <TextView
+        android:id="@+id/player"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="1dp"
+        android:background="#AAB6A6"
+        android:layout_marginStart="4dp"
+        android:layout_marginBottom="11dp"
+        android:fontFamily="@raw/font"
+        android:textColor="#666666"
+        android:textSize="11sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/selected"
+        tools:text="AI对战" />
+    <TextView
         android:id="@+id/time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -33,7 +47,7 @@
         android:textColor="#666666"
         android:textSize="13sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/selected"
+        app:layout_constraintStart_toEndOf="@id/player"
         tools:text="时间" />
 
     <TextView

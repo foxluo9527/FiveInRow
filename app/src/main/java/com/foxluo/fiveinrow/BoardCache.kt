@@ -9,6 +9,7 @@ data class BoardCache(
     val title: String,
     val time: Long,
     val data: String,
+    val aiPlayer: Boolean,
     var selected: Boolean = false
 ) : Serializable {
     companion object {

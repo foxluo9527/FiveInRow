@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginHorizontal="40dp"
+    android:layout_marginVertical="80dp"
+    android:background="#C9D1C6"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#B4BCB1"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:fontFamily="@raw/font"
+            android:text="@string/choose_easy_mode"
+            android:textColor="@drawable/color_game_text"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/easy_0"
+        android:layout_width="180dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="15dp"
+        android:background="#B4BCB1"
+        android:fontFamily="@raw/font"
+        android:gravity="center"
+        android:text="@string/easy_0"
+        android:textColor="@drawable/color_game_text"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/easy_1"
+        android:layout_width="180dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="15dp"
+        android:background="#B4BCB1"
+        android:fontFamily="@raw/font"
+        android:gravity="center"
+        android:text="@string/easy_1"
+        android:textColor="@drawable/color_game_text"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/easy_2"
+        android:layout_width="180dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="15dp"
+        android:background="#B4BCB1"
+        android:fontFamily="@raw/font"
+        android:gravity="center"
+        android:text="@string/easy_2"
+        android:textColor="@drawable/color_game_text"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/easy_3"
+        android:layout_width="180dp"
+        android:layout_height="40dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="16dp"
+        android:background="#B4BCB1"
+        android:fontFamily="@raw/font"
+        android:gravity="center"
+        android:text="@string/easy_3"
+        android:textColor="@drawable/color_game_text"
+        android:textSize="14sp" />
+</LinearLayout>

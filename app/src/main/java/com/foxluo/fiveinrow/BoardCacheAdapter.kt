@@ -62,6 +62,7 @@ class CacheViewHolder(val binding: ItemBoardCacheBinding) : RecyclerView.ViewHol
         binding.selected.setOnCheckedChangeListener { _, checked ->
             cache.selected = checked
         }
+        binding.player.text = if (cache.aiPlayer) "AI对战" else "玩家对战"
         binding.root.setOnLongClickListener(longClickListener)
     }
 }

@@ -12,11 +12,12 @@ import android.view.MotionEvent
 import android.view.View
 import com.blankj.utilcode.util.SPUtils
 import com.blankj.utilcode.util.SizeUtils
+import com.blankj.utilcode.util.ToastUtils
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
 /**
- * 落子确认回调接口
+ * 游戏进程回调接口
  */
 interface GameCallback {
     /**
@@ -27,9 +28,18 @@ interface GameCallback {
      */
     fun onNeedConfirmMove(row: Int, col: Int, player: Int)
 
+    /**
+     * 请求电脑下一步棋
+     */
+    fun onComputerConfirm()
+
+    fun onStep(player: Int)
+
     fun gameOver(blackWin: Boolean)
 
     fun gameStart()
+
+    fun gameReady()
 }
 
 /**
@@ -66,6 +76,12 @@ class FiveInRowGameView @JvmOverloads constructor(
     private val gridLinePaint by lazy {
         Paint()
     }
+
+    var playWithComputer: Boolean = false
+
+    @Volatile
+    private var waitForComputer = false
+
     private var lineHeight: Float = 0f
     private var lineWidth: Float = 0f
     var gameStartTime = 0L
@@ -74,7 +90,7 @@ class FiveInRowGameView @JvmOverloads constructor(
         Array<IntArray>(gridLineCount) { IntArray(gridLineCount) }
 
     private var currentPlayer = 1  // 1: 黑方, -1: 白方
-    private var _isGameOver = false
+    private var _isGameOver = true
     private val blackPiecePaint by lazy {
         Paint().apply {
             color = Color.BLACK; isAntiAlias = true
@@ -122,7 +138,8 @@ class FiveInRowGameView @JvmOverloads constructor(
         val gameDataBytes = data.copyOfRange(0, gameDataSize)
         val playerBytes = data.copyOfRange(gameDataSize, data.size)
         _gameData = BoardSerializer.deserializeBoard(gameDataBytes)
-
+        playWithComputer = cache.aiPlayer
+        isWaitingForConfirm = false
         // 检查玩家数据是否有效
         currentPlayer = if (playerBytes.size >= Int.SIZE_BYTES) {
             ByteBuffer.wrap(playerBytes).int
@@ -131,17 +148,24 @@ class FiveInRowGameView @JvmOverloads constructor(
         }
         _isGameOver = false
         invalidate()
+        gameCallback?.gameReady()
         gameCallback?.gameStart()
+        gameCallback?.onStep(currentPlayer)
     }
 
     /**
-     * 获取游戏数据
+     * 获取游戏存档数据
      */
-    fun getGameData(): ByteArray {
+    fun getGameDataCache(): ByteArray {
         val gameDataBytes = BoardSerializer.serializeBoard(_gameData)
         val playerBytes = ByteBuffer.allocate(Int.SIZE_BYTES).putInt(currentPlayer).array()
         return gameDataBytes + playerBytes
     }
+
+    /**
+     * 获取游戏进度数据
+     */
+    fun getGameData() = _gameData
 
     /**
      * 获取棋盘中纵横位的坐标位置
@@ -177,7 +201,8 @@ class FiveInRowGameView @JvmOverloads constructor(
     /**
      * 重置游戏状态
      */
-    fun resetGame() {
+    fun resetGame(playWithComputer: Boolean = this.playWithComputer) {
+        this.playWithComputer = playWithComputer
         _gameData = Array(gridLineCount) { IntArray(gridLineCount) }
         currentPlayer = 1
         _isGameOver = false
@@ -186,6 +211,7 @@ class FiveInRowGameView @JvmOverloads constructor(
         pendingCol = -1
         gameStartTime = 0L
         invalidate()
+        gameCallback?.gameReady()
     }
 
     /**
@@ -197,6 +223,23 @@ class FiveInRowGameView @JvmOverloads constructor(
 
     fun setNeedConfirm(needConfirm: Boolean) {
         this.needConfirm = needConfirm
+    }
+
+    /**
+     * 执行电脑下棋
+     */
+    fun computerConfirm(row: Int, col: Int) {
+        if (_isGameOver || !playWithComputer) return
+
+        // 检查位置是否有效
+        if (row in 0 until gridLineCount && col in 0 until gridLineCount && _gameData[row][col] == 0) {
+            _gameData[row][col] = currentPlayer
+            judgeGameStart()
+            invalidate()
+            // 检查游戏是否结束
+            checkGameOver()
+            waitForComputer = false
+        }
     }
 
     /**
@@ -271,6 +314,17 @@ class FiveInRowGameView @JvmOverloads constructor(
         }
         // 切换玩家
         currentPlayer *= -1  // 未分胜负
+
+        // 如果是电脑对战且当前是电脑回合，请求电脑下棋
+        if (playWithComputer && currentPlayer == -1 && !_isGameOver) {
+            waitForComputer = true
+            gameCallback?.onComputerConfirm()
+        } else {
+            waitForComputer = false
+        }
+        if (!playWithComputer && !_isGameOver) {
+            gameCallback?.onStep(currentPlayer)
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -342,7 +396,7 @@ class FiveInRowGameView @JvmOverloads constructor(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action != MotionEvent.ACTION_DOWN || _isGameOver) return true
+        if (event.action != MotionEvent.ACTION_DOWN || _isGameOver || waitForComputer) return true
 
         val point = getRowClsByPosition(event.x, event.y)
         point?.let {

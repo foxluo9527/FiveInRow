@@ -2,12 +2,10 @@ package com.foxluo.fiveinrow
 
 import androidx.lifecycle.MutableLiveData
 import com.blankj.utilcode.util.GsonUtils
-
 import com.blankj.utilcode.util.SPUtils
 import com.blankj.utilcode.util.TimeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 
 object BoardCacheManager {
     val cacheList by lazy {
@@ -17,11 +15,18 @@ object BoardCacheManager {
     fun saveGame(
         id: Long,
         title: String = TimeUtils.getNowString(),
-        data: ByteArray
+        data: ByteArray,
+        aiPlayer: Boolean
     ): Boolean {
         return runBlocking(Dispatchers.IO) {
             val cache =
-                BoardCache(id, title, System.currentTimeMillis(), BoardCache.bytesToDataStr(data))
+                BoardCache(
+                    id,
+                    title,
+                    System.currentTimeMillis(),
+                    BoardCache.bytesToDataStr(data),
+                    aiPlayer
+                )
             runCatching {
                 SPUtils.getInstance("game-cache").put(id.toString(), GsonUtils.toJson(cache))
                 loadGameData()

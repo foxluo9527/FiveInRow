@@ -8,6 +8,18 @@
     android:background="#C9D1C6"
     tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@raw/font"
+        android:text="请点击新游戏开始"
+        android:textColor="@drawable/color_game_text"
+        android:textSize="15sp"
+        app:layout_constraintBottom_toTopOf="@+id/setting"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/center_v"
         android:layout_width="wrap_content"
@@ -25,12 +37,12 @@
         android:paddingVertical="6dp"
         android:text="@string/setting"
         android:textColor="@drawable/color_game_text"
-        android:textSize="23sp"
+        android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@id/game_view"
         app:layout_constraintEnd_toStartOf="@id/center_v"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.25" />
+        app:layout_constraintVertical_bias="0.5" />
 
     <TextView
         android:id="@+id/cache"
@@ -43,12 +55,12 @@
         android:paddingVertical="6dp"
         android:text="@string/save_list"
         android:textColor="@drawable/color_game_text"
-        android:textSize="23sp"
+        android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@id/game_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/center_v"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.25" />
+        app:layout_constraintVertical_bias="0.5" />
 
     <TextView
         android:id="@+id/save"
@@ -61,12 +73,12 @@
         android:paddingVertical="6dp"
         android:text="@string/save"
         android:textColor="@drawable/color_game_text"
-        android:textSize="23sp"
+        android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@id/game_view"
         app:layout_constraintEnd_toStartOf="@id/center_v"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.75" />
+        app:layout_constraintVertical_bias="0.9" />
 
     <TextView
         android:id="@+id/reset"
@@ -79,12 +91,12 @@
         android:paddingVertical="6dp"
         android:text="@string/new_game"
         android:textColor="@drawable/color_game_text"
-        android:textSize="23sp"
+        android:textSize="18sp"
         app:layout_constraintBottom_toTopOf="@id/game_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/center_v"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.75" />
+        app:layout_constraintVertical_bias="0.9" />
 
     <com.foxluo.fiveinrow.FiveInRowGameView
         android:id="@+id/game_view"

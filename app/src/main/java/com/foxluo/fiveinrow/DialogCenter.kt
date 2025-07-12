@@ -10,7 +10,9 @@ import com.blankj.utilcode.util.SizeUtils
 import com.blankj.utilcode.util.TimeUtils
 import com.blankj.utilcode.util.ToastUtils
 import com.foxluo.fiveinrow.databinding.DialogCacheListBinding
+import com.foxluo.fiveinrow.databinding.DialogEasyModeBinding
 import com.foxluo.fiveinrow.databinding.DialogGameOverBinding
+import com.foxluo.fiveinrow.databinding.DialogNewGameBinding
 import com.foxluo.fiveinrow.databinding.DialogSettingBinding
 
 object DialogCenter {
@@ -107,6 +109,42 @@ object DialogCenter {
         return builder
     }
 
+    fun Activity.newGameDialog(
+        start: (Boolean) -> Unit
+    ): AlertDialog.Builder {
+        val binding = DialogNewGameBinding.inflate(layoutInflater)
+        binding.pvp.setOnClickListener {
+            start(true)
+        }
+        binding.pve.setOnClickListener {
+            start(false)
+        }
+        val builder = AlertDialog.Builder(this, R.style.DialogAnim)
+            .setView(binding.root)
+            .setCancelable(true)
+        return builder
+    }
+
+    fun Activity.easyModeDialog(choose: (Int) -> Unit): AlertDialog.Builder {
+        val binding = DialogEasyModeBinding.inflate(layoutInflater)
+        binding.easy0.setOnClickListener {
+            choose.invoke(0)
+        }
+        binding.easy1.setOnClickListener {
+            choose.invoke(1)
+        }
+        binding.easy2.setOnClickListener {
+            choose.invoke(2)
+        }
+        binding.easy3.setOnClickListener {
+            choose.invoke(3)
+        }
+        val builder = AlertDialog.Builder(this, R.style.DialogAnim)
+            .setView(binding.root)
+            .setCancelable(true)
+        return builder
+    }
+
     fun Activity.settingDialog(gameView: FiveInRowGameView): AlertDialog.Builder {
         val binding = DialogSettingBinding.inflate(layoutInflater)
         val builder = AlertDialog.Builder(this, R.style.DialogAnim)
@@ -136,6 +174,21 @@ object DialogCenter {
                 gameView.gridLineWidth = progress.toFloat()
             }
         })
+        val difficultyItems = arrayOf("弱智", "有点傻", "正常", "会玩", "专家")
+        var easyDialog: AlertDialog? = null
+        val aiEasyBuilder = easyModeDialog { easy ->
+            SPUtils.getInstance().put("easy_mode", easy)
+            easyDialog?.dismiss()
+            binding.easyMode.text = difficultyItems[easy]
+        }
+        binding.easy.setOnClickListener {
+            if (easyDialog == null) {
+                easyDialog = aiEasyBuilder.show()
+            } else {
+                easyDialog.show()
+            }
+        }
+        binding.easyMode.text = difficultyItems[SPUtils.getInstance().getInt("easy_mode", 1)]
         val colorViews = arrayOf(
             binding.black, binding.gray, binding.blue, binding.yellow,
             binding.red, binding.green, binding.cyan, binding.magenta
