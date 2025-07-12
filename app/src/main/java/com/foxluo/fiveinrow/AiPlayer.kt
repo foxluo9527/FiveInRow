@@ -1,10 +1,11 @@
 package com.foxluo.fiveinrow
 
+import calculateDifficultMove
+import calculateExpertMove
 import com.blankj.utilcode.util.SPUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
 
 object AiPlayer {
     // 评估权重配置
@@ -36,18 +37,18 @@ object AiPlayer {
         return withContext(Dispatchers.IO) {
             val difficulty = SPUtils.getInstance().getInt("easy_mode", 1)
             when (difficulty) {
-                0 -> calculateEasyMove(gameData)
-                1 -> calculateMediumMove(gameData)
-                2 -> calculateHardMove(gameData)
-                else -> calculateExpertMove(gameData)
+                0 -> calculateMediumMove(gameData)
+                1 -> calculateHardMove(gameData)
+                2 -> calculateExpertMove(gameData)
+                else -> calculateDifficultMove(gameData)
             }.also {
-                delay((3 - difficulty) * 80L)
+                delay((4 - difficulty) * 80L)
             }
         }
     }
 
     private fun calculateEasyMove(gameData: Array<IntArray>): Pair<Int, Int> {
-        // 简单难度：随机选择空位，20%概率选择最佳位置
+        // 傻装傻子模式：随机选择空位，20%概率选择最佳位置
         val emptyPositions = mutableListOf<Pair<Int, Int>>()
         for (row in gameData.indices) {
             for (col in gameData[row].indices) {
@@ -64,7 +65,7 @@ object AiPlayer {
     }
 
     private fun calculateMediumMove(gameData: Array<IntArray>): Pair<Int, Int> {
-        // 中等难度：评估简化棋型，限制搜索范围
+        // 简单难度：评估简化棋型，限制搜索范围
         var bestScore = Int.MIN_VALUE
         var bestRow = -1
         var bestCol = -1
@@ -94,6 +95,7 @@ object AiPlayer {
     }
 
     private fun calculateHardMove(gameData: Array<IntArray>): Pair<Int, Int> {
+        //正常难度
         var bestScore = Int.MIN_VALUE
         var bestRow = -1
         var bestCol = -1
@@ -126,152 +128,6 @@ object AiPlayer {
         }
     }
 
-    private fun calculateExpertMove(gameData: Array<IntArray>): Pair<Int, Int> {
-        var bestScore = Int.MIN_VALUE
-        var bestRow = -1
-        var bestCol = -1
-        val boardSize = gameData.size
-
-        // 收集已有棋子附近的空位（限制搜索范围优化性能）
-        val emptyPositions = mutableListOf<Pair<Int, Int>>()
-        val searchRange = 4
-        val existingStones = mutableListOf<Pair<Int, Int>>()
-
-        // 收集所有已有棋子位置
-        for (row in gameData.indices) {
-            for (col in gameData[row].indices) {
-                if (gameData[row][col] != 0) {
-                    existingStones.add(Pair(row, col))
-                }
-            }
-        }
-
-        // 如果没有棋子，从中心开始
-        if (existingStones.isEmpty()) {
-            emptyPositions.add(Pair(gameData.size / 2, gameData.size / 2))
-        } else {
-            // 只评估已有棋子附近的空位
-            for ((stoneRow, stoneCol) in existingStones) {
-                for (row in (stoneRow - searchRange)..(stoneRow + searchRange)) {
-                    for (col in (stoneCol - searchRange)..(stoneCol + searchRange)) {
-                        if (row in gameData.indices && col in gameData[row].indices &&
-                            gameData[row][col] == 0 && !emptyPositions.contains(Pair(row, col))
-                        ) {
-                            emptyPositions.add(Pair(row, col))
-                        }
-                    }
-                }
-            }
-        }
-
-        // 按中心距离升序排序，距离相同则按行和列排序
-        emptyPositions.sortWith(
-            compareBy(
-            { pos: Pair<Int, Int> -> abs(pos.first - boardSize / 2) + abs(pos.second - boardSize / 2) },
-            { pos: Pair<Int, Int> -> pos.first },
-            { pos: Pair<Int, Int> -> pos.second }
-        ))
-
-        // 限制评估位置数量，避免计算量过大导致死循环
-        val evaluateLimit = 25
-        val limitedPositions = if (emptyPositions.size > evaluateLimit) {
-            emptyPositions.take(evaluateLimit)
-        } else {
-            emptyPositions
-        }
-
-        // 使用minimax搜索评估排序后的位置
-        for ((row, col) in limitedPositions) {
-            // 为每个评估位置创建独立的棋盘深拷贝
-            val originalBoard = gameData.map { it.clone() }.toTypedArray()
-            // 模拟落子
-            originalBoard[row][col] = AI_PLAYER
-            val score =
-                minimax(originalBoard, EXPERT_SEARCH_DEPTH, false, Int.MIN_VALUE, Int.MAX_VALUE)
-            originalBoard[row][col] = 0// 撤销模拟落子
-
-            if (score > bestScore) {
-                bestScore = score
-                bestRow = row
-                bestCol = col
-            }
-        }
-
-        return if (bestRow == -1 || bestCol == -1) Pair(7, 7) else Pair(bestRow, bestCol)
-    }
-
-    /**
-     * Minimax算法实现带alpha-beta剪枝
-     * @param depth 搜索深度
-     * @param isMaximizing 是否为最大化玩家（AI）
-     * @param alpha  alpha值
-     * @param beta   beta值
-     * @return 最佳分数
-     */
-    private fun minimax(
-        gameData: Array<IntArray>,
-        depth: Int,
-        isMaximizing: Boolean,
-        alpha: Int,
-        beta: Int
-    ): Int {
-        // 提前检测三连威胁
-        // 检测所有方向的三连威胁（包含斜向）
-        val humanThreat = checkLineThreat(gameData, HUMAN_PLAYER, 3)
-        if (humanThreat) return -BLOCK_THREE_SCORE * 2
-
-        // 检查游戏是否结束或达到搜索深度
-        val winner = checkWinner(gameData)
-        if (winner != 0 || depth == 0) {
-            return when (winner) {
-                AI_PLAYER -> evaluateBoard(gameData) + depth * 1000 // 深度加成，优先选择更快获胜的路径
-                HUMAN_PLAYER -> -evaluateBoard(gameData) - depth * 1000
-                else -> evaluateBoard(gameData) // 平局或达到深度
-            }.toInt()
-        }
-
-        return if (isMaximizing) {
-            var maxScore = Int.MIN_VALUE
-            var newAlpha = alpha
-
-            // AI回合（最大化分数）
-            for (row in gameData.indices) {
-                for (col in gameData[row].indices) {
-                    if (gameData[row][col] == 0) {
-                        gameData[row][col] = AI_PLAYER
-                        val score = minimax(gameData, depth - 1, false, newAlpha, beta)
-                        gameData[row][col] = 0
-
-                        maxScore = maxOf(maxScore, score)
-                        newAlpha = maxOf(newAlpha, score)
-                        if (beta <= newAlpha) break // Alpha剪枝
-                    }
-                }
-                if (beta <= newAlpha) break
-            }
-            maxScore
-        } else {
-            var minScore = Int.MAX_VALUE
-            var newBeta = beta
-
-            // 玩家回合（最小化分数）
-            for (row in gameData.indices) {
-                for (col in gameData[row].indices) {
-                    if (gameData[row][col] == 0) {
-                        gameData[row][col] = HUMAN_PLAYER
-                        val score = minimax(gameData, depth - 1, true, alpha, newBeta)
-                        gameData[row][col] = 0
-
-                        minScore = minOf(minScore, score)
-                        newBeta = minOf(newBeta, score)
-                        if (newBeta <= alpha) break // Beta剪枝
-                    }
-                }
-                if (newBeta <= alpha) break
-            }
-            minScore
-        }
-    }
 
     /**
      * 检查当前棋局的获胜者

@@ -12,7 +12,6 @@ import android.view.MotionEvent
 import android.view.View
 import com.blankj.utilcode.util.SPUtils
 import com.blankj.utilcode.util.SizeUtils
-import com.blankj.utilcode.util.ToastUtils
 import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
@@ -91,6 +90,11 @@ class FiveInRowGameView @JvmOverloads constructor(
 
     private var currentPlayer = 1  // 1: 黑方, -1: 白方
     private var _isGameOver = true
+    private val currentPiecePaint by lazy {
+        Paint().apply {
+            color = Color.RED; isAntiAlias = true
+        }
+    }
     private val blackPiecePaint by lazy {
         Paint().apply {
             color = Color.BLACK; isAntiAlias = true
@@ -105,6 +109,8 @@ class FiveInRowGameView @JvmOverloads constructor(
     private var gameCallback: GameCallback? = null
     private var pendingRow = -1
     private var pendingCol = -1
+    private var lastRow = -1
+    private var lastCol = -1
     private var isWaitingForConfirm = false
     private var needConfirm = true
 
@@ -234,6 +240,8 @@ class FiveInRowGameView @JvmOverloads constructor(
         // 检查位置是否有效
         if (row in 0 until gridLineCount && col in 0 until gridLineCount && _gameData[row][col] == 0) {
             _gameData[row][col] = currentPlayer
+            lastRow = row
+            lastCol = col
             judgeGameStart()
             invalidate()
             // 检查游戏是否结束
@@ -249,6 +257,8 @@ class FiveInRowGameView @JvmOverloads constructor(
         if (isWaitingForConfirm && pendingRow != -1 && pendingCol != -1) {
             _gameData[pendingRow][pendingCol] = currentPlayer
             isWaitingForConfirm = false
+            lastRow = pendingRow
+            lastCol = pendingCol
             pendingRow = -1
             pendingCol = -1
             judgeGameStart()
@@ -274,7 +284,7 @@ class FiveInRowGameView @JvmOverloads constructor(
      * 检查游戏是否结束，判断胜利者
      * @return 1表示黑方胜利，-1表示白方胜利，0表示游戏继续
      */
-    fun checkGameOver() {
+    private fun checkGameOver() {
         val directions = arrayOf(
             intArrayOf(1, 0),   // 水平方向
             intArrayOf(0, 1),   // 垂直方向
@@ -375,6 +385,7 @@ class FiveInRowGameView @JvmOverloads constructor(
      * @param alpha 透明度（0-255）
      */
     private fun drawPiece(canvas: Canvas, row: Int, col: Int, player: Int, alpha: Int) {
+        val currentPiece = row == lastRow && col == lastCol
         val pos = getPositionByRowCls(row, col)
         val originalAlpha = if (player == 1) blackPiecePaint.alpha else whitePiecePaint.alpha
 
@@ -382,11 +393,16 @@ class FiveInRowGameView @JvmOverloads constructor(
             // 白棋需要黑色边框
             blackPiecePaint.alpha = alpha
             whitePiecePaint.alpha = alpha
-            canvas.drawCircle(pos.x, pos.y, pieceRadius, blackPiecePaint)
+            canvas.drawCircle(pos.x, pos.y, pieceRadius, if (currentPiece) currentPiecePaint else blackPiecePaint)
             canvas.drawCircle(pos.x, pos.y, pieceRadius * 0.9f, whitePiecePaint)
         } else {
             blackPiecePaint.alpha = alpha
-            canvas.drawCircle(pos.x, pos.y, pieceRadius, blackPiecePaint)
+            if (currentPiece) {
+                canvas.drawCircle(pos.x, pos.y, pieceRadius, currentPiecePaint)
+                canvas.drawCircle(pos.x, pos.y, pieceRadius * 0.9f, blackPiecePaint)
+            } else {
+                canvas.drawCircle(pos.x, pos.y, pieceRadius, blackPiecePaint)
+            }
         }
 
         // 恢复透明度
@@ -419,6 +435,8 @@ class FiveInRowGameView @JvmOverloads constructor(
                 } else {
                     // 无回调直接落子
                     _gameData[row][col] = currentPlayer
+                    lastRow = row
+                    lastCol = col
                     judgeGameStart()
                     invalidate()
                     // 检查游戏是否结束
