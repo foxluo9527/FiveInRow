@@ -10,8 +10,9 @@ import android.graphics.PointF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import com.foxluo.fiveinrow.BoardSerializer.deserializeBoard
-import com.foxluo.fiveinrow.BoardSerializer.serializeBoard
+import com.blankj.utilcode.util.SPUtils
+import com.blankj.utilcode.util.SizeUtils
+import java.nio.ByteBuffer
 import kotlin.math.roundToInt
 
 /**
@@ -27,6 +28,8 @@ interface GameCallback {
     fun onNeedConfirmMove(row: Int, col: Int, player: Int)
 
     fun gameOver(blackWin: Boolean)
+
+    fun gameStart()
 }
 
 /**
@@ -37,28 +40,41 @@ class FiveInRowGameView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
-    private var gridLineColor: Int = Color.BLACK
-    private var gridLineCount: Int = 13
-    private var gridLineWidth = 3f
-    var padding: Int = 16.dpToPx()
+    var gridLineColor: Int = SPUtils.getInstance().getInt("setting_grid_color", Color.BLACK)
         set(value) {
-            field = value.dpToPx()
+            field = value
+            SPUtils.getInstance().put("setting_grid_color", value)
             initGridLine()
         }
+
+    var gridLineWidth = SPUtils.getInstance().getFloat("setting_grid_width", 3f)
+        set(value) {
+            field = value
+            SPUtils.getInstance().put("setting_grid_width", value)
+            initGridLine()
+        }
+
+    var padding: Int = SPUtils.getInstance().getInt("setting_grid_padding", SizeUtils.dp2px(16f))
+        set(value) {
+            field = value
+            SPUtils.getInstance().put("setting_grid_padding", value)
+            initGridLine()
+        }
+
+    private val gridLineCount: Int = 13
+
     private val gridLinePaint by lazy {
         Paint()
     }
     private var lineHeight: Float = 0f
     private var lineWidth: Float = 0f
-
-    private fun Int.dpToPx(): Int {
-        return (this * context.resources.displayMetrics.density).toInt()
-    }
+    var gameStartTime = 0L
 
     private var _gameData: Array<IntArray> =
         Array<IntArray>(gridLineCount) { IntArray(gridLineCount) }
+
     private var currentPlayer = 1  // 1: 黑方, -1: 白方
-    private var isGameOver = false
+    private var _isGameOver = false
     private val blackPiecePaint by lazy {
         Paint().apply {
             color = Color.BLACK; isAntiAlias = true
@@ -91,15 +107,41 @@ class FiveInRowGameView @JvmOverloads constructor(
     /**
      * 设置序列化游戏数据
      */
-    fun initGameData(data: ByteArray) {
-        _gameData = deserializeBoard(data)
+    fun initGameCache(cache: BoardCache) {
+        gameStartTime = cache.id
+        val data: ByteArray = BoardCache.dataToByte(cache.data)
+        val gameDataSize = 43  // 棋盘数据固定为43字节
+
+        // 检查数据是否有效
+        if (data.size < gameDataSize) {
+            // 数据无效，重置游戏
+            resetGame()
+            return
+        }
+
+        val gameDataBytes = data.copyOfRange(0, gameDataSize)
+        val playerBytes = data.copyOfRange(gameDataSize, data.size)
+        _gameData = BoardSerializer.deserializeBoard(gameDataBytes)
+
+        // 检查玩家数据是否有效
+        currentPlayer = if (playerBytes.size >= Int.SIZE_BYTES) {
+            ByteBuffer.wrap(playerBytes).int
+        } else {
+            1  // 默认黑方先手
+        }
+        _isGameOver = false
         invalidate()
+        gameCallback?.gameStart()
     }
 
     /**
      * 获取游戏数据
      */
-    fun getGameData() = serializeBoard(_gameData)
+    fun getGameData(): ByteArray {
+        val gameDataBytes = BoardSerializer.serializeBoard(_gameData)
+        val playerBytes = ByteBuffer.allocate(Int.SIZE_BYTES).putInt(currentPlayer).array()
+        return gameDataBytes + playerBytes
+    }
 
     /**
      * 获取棋盘中纵横位的坐标位置
@@ -138,10 +180,11 @@ class FiveInRowGameView @JvmOverloads constructor(
     fun resetGame() {
         _gameData = Array(gridLineCount) { IntArray(gridLineCount) }
         currentPlayer = 1
-        isGameOver = false
+        _isGameOver = false
         isWaitingForConfirm = false
         pendingRow = -1
         pendingCol = -1
+        gameStartTime = 0L
         invalidate()
     }
 
@@ -165,16 +208,10 @@ class FiveInRowGameView @JvmOverloads constructor(
             isWaitingForConfirm = false
             pendingRow = -1
             pendingCol = -1
+            judgeGameStart()
             invalidate()
-
             // 检查游戏是否结束
-            val result = checkGameOver()
-            if (result != 0) {
-                isGameOver = true
-            } else {
-                // 切换玩家
-                currentPlayer *= -1
-            }
+            checkGameOver()
         }
     }
 
@@ -194,7 +231,7 @@ class FiveInRowGameView @JvmOverloads constructor(
      * 检查游戏是否结束，判断胜利者
      * @return 1表示黑方胜利，-1表示白方胜利，0表示游戏继续
      */
-    fun checkGameOver(): Int {
+    fun checkGameOver() {
         val directions = arrayOf(
             intArrayOf(1, 0),   // 水平方向
             intArrayOf(0, 1),   // 垂直方向
@@ -226,12 +263,14 @@ class FiveInRowGameView @JvmOverloads constructor(
                     }
 
                     if (consecutiveCount >= 5) {
-                        return currentPlayer
+                        _isGameOver = true
+                        gameCallback?.gameOver(currentPlayer == 1)
                     }
                 }
             }
         }
-        return 0  // 未分胜负
+        // 切换玩家
+        currentPlayer *= -1  // 未分胜负
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -303,7 +342,7 @@ class FiveInRowGameView @JvmOverloads constructor(
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (event.action != MotionEvent.ACTION_DOWN || isGameOver) return true
+        if (event.action != MotionEvent.ACTION_DOWN || _isGameOver) return true
 
         val point = getRowClsByPosition(event.x, event.y)
         point?.let {
@@ -326,20 +365,28 @@ class FiveInRowGameView @JvmOverloads constructor(
                 } else {
                     // 无回调直接落子
                     _gameData[row][col] = currentPlayer
+                    judgeGameStart()
                     invalidate()
-
                     // 检查游戏是否结束
-                    val result = checkGameOver()
-                    if (result != 0) {
-                        isGameOver = true
-                        gameCallback?.gameOver(result == 1)
-                    } else {
-                        // 切换玩家
-                        currentPlayer *= -1
-                    }
+                    checkGameOver()
                 }
             }
         }
         return true
+    }
+
+    /**
+     * 判断是否只有一颗棋子
+     */
+    private fun judgeGameStart() {
+        var pieceCountLeast = 0
+        for (pieces in _gameData) {
+            pieceCountLeast += pieces.count { it != 0 }
+            if (pieceCountLeast == 1 && gameStartTime == 0L) {
+                gameCallback?.gameStart()
+                gameStartTime = System.currentTimeMillis()
+                return
+            }
+        }
     }
 }

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="60dp"
+    android:background="@drawable/bg_item_cache">
+    <CheckBox
+        android:id="@+id/selected"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="3dp"
+        android:layout_marginTop="12dp"
+        android:fontFamily="@raw/font"
+        android:textColor="@drawable/color_game_text"
+        android:textSize="16sp"
+        app:layout_constraintStart_toEndOf="@id/selected"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="标题" />
+
+    <TextView
+        android:id="@+id/time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_marginBottom="11dp"
+        android:fontFamily="@raw/font"
+        android:textColor="#666666"
+        android:textSize="13sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/selected"
+        tools:text="时间" />
+
+    <TextView
+        android:id="@+id/continue_game"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:paddingHorizontal="16dp"
+        android:fontFamily="@raw/font"
+        android:textColor="@color/black"
+        android:gravity="center_vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:text="@string/continue_game"/>
+</androidx.constraintlayout.widget.ConstraintLayout>

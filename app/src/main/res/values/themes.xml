@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <!-- Base application theme. -->
     <style name="Base.Theme.FiveInRow" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
@@ -6,4 +6,8 @@
     </style>
 
     <style name="Theme.FiveInRow" parent="Base.Theme.FiveInRow" />
+
+    <style name="DialogAnim" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="android:windowEnterAnimation">@anim/dialog_show_anim</item>
+    </style>
 </resources>
