@@ -147,8 +147,8 @@ fun findOpenThreeThreats(board: Board, directions: List<Direction>): Map<Positio
     return threats
 }
 
-// 新增：寻找黑方跳四威胁（非连续四子但形成必胜）
-private fun findBlackJumpFourThreats(board: Board, directions: List<Direction>): Map<Position, Int> {
+// 寻找黑方跳四威胁（非连续四子但形成必胜）
+fun findBlackJumpFourThreats(board: Board, directions: List<Direction>): Map<Position, Int> {
     val threats = mutableMapOf<Position, Int>()
     val size = board.size
 
@@ -458,7 +458,8 @@ fun analyzeLine(
         openEnds.add(Pair(x, y))
     }
 
-    return Triple(length, openEnds.distinct(), openEnds.size)
+    val distinctEnds = openEnds.distinct()
+    return Triple(length, distinctEnds, distinctEnds.size)
 }
 
 // 辅助函数：检查坐标是否有效
